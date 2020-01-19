@@ -161,7 +161,148 @@ person2.sayName("person2");	// outputs "person2:Nicholas"
 
 # Understanding Objects
 
+> Objects in Javascript are dynamic, meaning that they can change at any point during code execution. there are two basic ways to create your own objects: using the Object constructor and using an object literal.
+
+**Defining Properties**
+
+````javascript
+var person1 = {
+  name: "Nicholas"
+};
+
+var person2 = new Object();
+person2.name = "Nicholas";
+
+person1.age = "Redacted";
+person2.age = "Redacted";
+
+person1.name = "Greg";
+person2.name = "Michael";
+````
+
+**Detecting Properties**
+
+````javascript
+console.log("name" in person1);
+console.log("age" in person1);
+console.log("title" in person1);
+````
+
+> Keep. in mind that methods are just properties that reference function, so you can check for the existence of a method in the same way.
+
+````javascript
+var person1 = {
+  name: "Nicholas",
+  sayName: function() {
+    console.log(this.name);
+  }
+};
+
+console.log("sayName" in person1); // true
+````
+
+> In some cases, however, you might want to check for the existence of a property only if it is an own property. The in operator checks for both own properties and prototype properties, so you'll need to take a different approach. Enter the hasOwnProperty() method, wich is present on all objects and returns true only if the given property exist and is an own property.
+
+````javascript
+// The following code compares the results of using in versus hasOwnProperty().
+
+var person1 = {
+  name: "Nicholas",
+  sayName: function() {
+    console.log(this.name);
+  }
+};
+
+console.log("name" in person1); // true
+console.log(person1.hasOwnProperty("name")); // true
+
+console.log("toString" in person1);	// true
+console.log(person1.hasOwnProperty("toString")); // false		0-
+````
+
+**Removing Properties**
+
+> You need to use the `delete` operator to completely remove property and calls an internal operation name [[Delete]].
+
+````javascript
+var person1 = {
+  name: "Nicholas"
+}
+
+console.log("name" in person1); // true
+delete person1.name;
+
+console.log("name", in person1); // false
+console.log(person1.name); // undefined
+````
+
+> Whe you *delete* the name property, it completely disappears from person1.
+
+**Enumeration**
+
+> Typically, you would use `Object.keys()` in situations where you want to operate on an array of property name and `for-in` when you don't need an array. You can check whether a property is enumerable by using the `propertyIsEnumerable()` method, which is present on every object:
+
+**for-in**
+
+````javascript
+var property;
+
+for (property in object) {
+  console.log("Name: " + property);
+  console.log("Value: " + object[property]);
+}
+````
 
 
 
+**Object.keys**
+
+````javascript
+var properties = Object.keys(object);
+
+// if you want to mimic for-in behavior
+var i, len;
+
+for (i = 0, len = properties.length; i < len; i++){
+  console.log("Name: " + properties[i]);
+  console.log("Value: " + object[properties[i]]);
+}
+
+````
+
+**Types of Properties**
+
+> There are two different types of properties: data properties and accessor properties. *Data properties* contain a value, like the name property from earlier examples in this chapter. *Accessor properties* don't contain a value but instead define a function to call when the property is read (called a getter), and a function to call when the property is written to (called a setter). Accessor properties only require either a getter or a setter, though they can have both.
+
+````javascript
+// There is a special syntax to define an accesor property using an object literal.
+
+var person1 = {
+  _name: "Nicholas",
+  
+  
+  get name() {
+    console.log("Reading name");
+    return this._name;
+  },
+  
+  set name(value) {
+    console.log("Setting name to %s", value);
+    this._name = value;
+  }
+};
+
+console.log(person1.name); // "Reading name" then "Nicholas"
+
+person.name = "Greg";
+console.log(person1.name); // "Setting name to Greg" then "Greg"
+````
+
+> Getter are expected to return a value, while setter receive the value being assigned to the property as an argument. *You don't  need to define both a getter and a setter; you can choose one or both.*
+
+> *If you define only a getter, then the property becomes read-only, and attempts to write to it will fail silently in nonstrict mode and throw an error in strict mode.*
+>
+> *If you define only a setter, then the property becomes write-only, and attempts to read the value will fail silently in both stric and nonstrict mode.*
+
+## Property Attributes | Page 38
 
