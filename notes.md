@@ -304,5 +304,253 @@ console.log(person1.name); // "Setting name to Greg" then "Greg"
 >
 > *If you define only a setter, then the property becomes write-only, and attempts to read the value will fail silently in both stric and nonstrict mode.*
 
-## Property Attributes | Page 38
+## Property Attributes
 
+**Common Attributes**
+
+By default, all properties you declare on an object are both enumerable and configurable.
+
+ If you want to change property attributes, you can use the  `Object.defineProperty()` method. This method accepts three arguments: the object that owns the property, the property name, and a property descriptor object containing the attibutes to set. So you use `enumerable` to set `[[Enumerable]]` and configurable to set [[Configurable]]
+
+> You can't make a nonconfigurable property configurable again. When JavaScript is running in strict mode, attempting to delete a non configurable property results in an error. In constrict mode, the operation silently fails.
+
+````javascript
+var person1 = {
+    name: "Nicholas"
+};
+  
+Object.defineProperty(person1, "name", {
+    enumerable: false
+});
+  
+console.log("name" in person1); // true
+console.log(person1.propertyIsEnumerable("name")); // false
+
+var properties = Object.keys(person1);
+console.log(properties.length); // 0
+
+Object.defineProperty(person1, "name", {
+    configurable: false
+});
+
+// try to delete the Property
+delete person1.name;
+
+console.log("name" in person1); // true
+console.log(person1.name); // "Nicholas"
+
+Object.defineProperty(person1, "name", { // error!!
+    configurable: true
+});
+````
+
+**Data property Attributes**
+
+Data properties possess two additional attributes that accessors do not. The first is [[Value]], which holds the property value. The second attribute is [[Writable]], which is a Boolean value indicating whether  the property can be written to.
+
+```javascript
+var person = {};
+
+Object.defineProperty(person1, "name", {
+    value: "Nicholas",
+    enumerable: true,
+    configurable: true,
+    writable: true
+});
+```
+
+**Accessor Property Attributes**
+
+Accessor properties also have two additional attributes. Because there is not value stored for accessor properties, there is no need for [[value]] or [[Writable]]. Instead, accessors have [[Get]] and [[Set]], which contain the getter and setter functions, respectively. As with the object literal from of getters and setters, you need only define one of these attributes to create the property.
+
+> If you try to create a property with both data and accessor attributes, you will get an error.
+
+````JavaScript
+var person1 = {
+    _name: "Nicholas",
+
+    get name() {
+        console.log("Reading name");
+        return this._name;
+    },
+
+    set name(value) {
+        console.log("Setting name to ", value); 
+        this._name = value;
+    }
+};
+````
+
+This code can also be written as follows
+
+````JavaScript
+var person1 = {
+    _name: "Nicholas"
+}
+
+Object.defineProperty(person1, "name", {
+    get: function() {
+        console.log("Reading name");
+        return this._name;
+    },
+    set: function(value) {
+        console.log("Setting name to", value);
+        this._name = value;
+    },
+    enumerable: true,
+    configurable: true
+});
+````
+
+**Defining Multiple Properties**
+
+It's also prossible to define multiple properties on an object simultaneously if you use `Object.defineProperties()` instead of `Object.defineProperty()`. This method accepts two arguments: the object to work on, and an object containing all of the property information.
+
+````JavaScript
+var person1 = {};
+
+Object.defineProperties(person1, {
+    // data property to store data
+    _name: {
+        value: "Nicholas",
+        enumerable: true,
+        configurable: true,
+        writable: true
+    },
+
+    // accessor property
+    name: {
+        get: function() {
+            console.log("Reading name ");
+            return this._name;
+        },
+
+        set: function(value) {
+            console.log("Setting name to", value);
+            this._name = value;
+        },
+        enumerable: true,
+        configurable: true
+    }
+});
+````
+
+**Retrieving Property Attributes**
+
+If you need to fetch property attributes, you can do so in JavaScript by using `Object.getOwnPropertyDescriptor()`. This method accepts two arguments: the object to work on and the property name to retrieve.
+
+````javascript
+var person1 = {
+  name: "Nicholas"  
+};
+
+
+var descriptor = Object.getOwnPropertyDescriptor(person1, "name");
+
+console.log(descriptor.enumerable);
+console.log(descriptor.configurable);
+console.log(descriptor.writable);
+console.log(descriptor.value);
+````
+
+Here, a property called `name` is defined as part of an object literal. The call to `Object.getOwnPropertyDescriptor()` returns an object with `enumerable` `configurable`, `writable` and `value` though these weren't explicitly defined via `Object.defineProperty()`.
+
+## Preventing Object Modification
+
+Objects, just like properties, have internal attributes that govern their behavior. One of these attributes is [[Extensible]], which is a Boolean value indicating if the object itself can be modified.
+
+> All objects you create are *extensible* by default
+
+**Preventing Extensions**
+
+One way to create a nonextensible object is with `Object.preventExtensions()` This method accepts a single argument, which is the object you want to make nonextensible. You can check the value of [[Extensible]] by using `Object.isExtensible()`. The following code shows examples of both methods at work.
+
+```javascript
+var person1 = {
+    name: "Nicholas"
+};
+
+console.log(Object.isExtensible(person1)); // true
+
+Object.preventExtensions(person1);
+console.log(Object.isExtensible(person1)); // false
+
+person1.sayName = function() {
+    console.log(this.name);
+};
+
+console.log("sayName" in person1); // false
+```
+
+**Sealing Objects**
+
+The second way to create a nonextensible object is to `seal` the object. A sealed object is nonextensible. You can use the `Object.seal()` method on an object to seal it. When that happened, the [[Extensible]] attribute is set to false, and all properties have their [[Configurable]] attribute set to false. You can check to see whether an object is sealed using `Object.isSealed()` .
+
+````javascript
+var person1 = {
+    name: "Nicholas"
+};
+
+console.log(Object.isExtensible(person1)); // true
+console.log(Object.isSealed(person1)); // false
+
+Object.seal(person1);
+console.log(Object.isExtensible(person1)); // false
+console.log(Object.isSealed(person1)); // true
+
+
+person1.sayName = function() {
+    console.log(this.name); 
+};
+
+console.log("sayName" in person1); // false
+
+person1.name = "Greg";
+console.log(person1.name); // Greg
+
+delete person1.name;
+console.log("name" in person1); // true
+console.log(person1.name); // Greg
+
+
+var descriptor = Object.getOwnPropertyDescriptor(person1, "name");
+console.log(descriptor.configurable); // false
+````
+
+**Freezing Objects**
+
+A frozen object is a sealed object where data properties are also read-only. Fronzen objects can't become unfrozen, so they reamain in the state they were in when the became frozen. You can freeze an object by using `Object freeze()` and determine if an object is frozen by using `Object.isFrozen()`
+
+```javascript
+var person1 = {
+    name: "Nicholas"
+};
+
+console.log(Object.isExtensible(person1));  // true
+console.log(Object.isSealed(person1));  // false
+console.log(Object.isFrozen(person1)); // false
+
+Object.freeze(person1);
+console.log(Object.isExtensible(person1));
+console.log(Object.isSealed(person1));
+console.log(Object.isFrozen);
+
+person1.sayname = function() {
+    console.log(this.name);
+}
+
+console.log("sayName" in person1);  // false
+
+person1.name = "Greg";
+console.log(person1.name);  // "Nicholas
+
+delete person1.name;
+console.log("name" in person1); // true
+console.log(person1.name);  // "Nicholas"
+
+var descriptor = Object.getOwnPropertyDescriptor(person1, "name");
+console.log(descriptor.configurable); // false
+console.log(descriptor.writable); // false
+```
+
+> Frozen object are simply snapshots of an object at a particular point in time. They are of limited use and should be used rarely, As with all nonextensible objects, you should use strict  mode with frozen object.
