@@ -554,3 +554,270 @@ console.log(descriptor.writable); // false
 ```
 
 > Frozen object are simply snapshots of an object at a particular point in time. They are of limited use and should be used rarely, As with all nonextensible objects, you should use strict  mode with frozen object.
+
+## Constructor and Prototypes
+
+Constructors are just normal functions that are called with the `new` operator. You can define your own constructors anytime you want to create multiple objects with the same properties. You can identify objects created from constructors using `instanceof` or by accessing their `constructor` property directly.
+
+Every function has a `prototype` property that defines any properties shared by objects created with a particular constructor. Shared methods and primitive value properties are typically defined on prototypes, while all other properties are defined within the constructor. The `constructor` property is actually defined on the prototype because it is shared among object instances.
+
+The prototype of an object is stored internally in the `[[Prototype]]`property. This property is a reference, not a copy. If you change the prototype at any point in the time, those changes will occur on all instances because of the way JavaScript looks up properties. When you try to access a property on an object, that object is searched for any own property is searched. This searching mechanism means the prototype  can continue to change, and object instances referencing that prototype will reflect those changes immediately.
+
+Buit-in objects also have prototypes that can be modified. While it's not recommended to do this in production, it can be helpful for experimentation and proofs of concept for new functionality.
+
+## Inheritance
+
+**Methods Inherited from Object.prototype.**
+
+| Method                   | Description                                                  |
+| ------------------------ | ------------------------------------------------------------ |
+| `hasOwnProperty()`       | Determines whether an own property with the given name exist |
+| `propertyIsEnumerable()` | Determines whether an own property is enumerable             |
+| `isPrototypeOf()`        | Determines whether the object is the prototype of another    |
+| `valueOf()`              | Returns the value representation of the object               |
+| `toString()`             | Returns a string representation of the object                |
+
+> These five methods appear on all objects through inheritance. The last two are important when you. Need to make objects work consistently in JavaScript, and sometimes you might wnat to define them yourself.
+
+JavaScript supports inheritance though prototype chaining. A prototype chain is create between objects when the `[[Prototype]]` of one object is set equal to another. All generic objects automatically inherit from Object `.prototype`. If you want to create an object that inherits from something else, you can use `Object.create` to specify the value of [[Prototype]] for a new object.
+
+You accomplish inheritance between custom type by creating a prototype chain on the constructor. By setting the constructor's prototype property to another value, you create inheritance between instances of that constructor share the same prototype, so they all inherit from the same object. This technique works very well for inheriting methods from other objects, by you cannot inherit own properties using prototypes.
+
+To inherit own properties correctly, you can use constructor stealing, which is ismply calling a constructor function using `call()` or `apply()`. So that any initialization is done on the subtype object. Combining constructor stealing and prototype chaining is the most common way to achieve inheritance between custom types in JavaScript. This combination is frequently called pseudoclassical inheritance because of tis similarity to inheritance in class-based languages.
+
+You can access method on a supertype by directly accessing the supertype's prototype. In doing so, you must use `call()` or `apply()` to execute the super type method on the subtype object.
+
+## Object Patterns
+
+**The module Pattern**
+
+The *module pattern* is an object-creation pattern designed to create single-ton objects with private data. The basic approach is to use an *immediately invoked function expression (IIFE)* that returns an object. Methods that access private data in this way are called *privileged methods* Here's the basic format for the module patter:
+
+````javascript
+var yourObject = (function() {
+  // private data variables
+  
+  return {
+    // public methods and properties
+  };
+}());
+````
+
+> Closures are simply functions that access data outside their own scope. For example, whenever you access a global object in a function, such as window in a web browser, that function is accessing a variable outside its own scope.
+
+````javascript
+// This code creates the person object using the module pattern.
+
+var person = (function() {
+    var age = 25;
+    
+    return {
+      name: "Nicholas",
+      
+      getAge: function() {
+        return age;
+      },
+      
+      growOlder: function() {
+        age++;
+      }
+    };
+  }());
+  
+  console.log(person.name); // "Nicholas"
+  console.log(person.getAge()); // 25
+  
+  person.age = 100;
+  console.log(person.getAge()); // 25
+  
+  person.growOlder();
+  console.log(person.getAge()); // 26
+````
+
+There is a variation of the module pattern called the `revealing module pattern`, which arranges all variables an methods at the top of the IIFE and simly assigns them to the returned object. You can write the previous example using the revealing module pattern as follows:
+
+````javascript
+var person = (function() {
+  var age = 25;
+  function getAge() {
+    return age;
+  }
+  
+  function growOlder() {
+    age++;
+  }
+  
+  return {
+    name: "Nicholas",
+    getAge: getAge,
+    growOlder: growOlder
+  }
+}());
+````
+
+**Private Members for Constructors**
+
+````javascript
+var Person = (function() {
+    // everyone shares the same age
+    var age = 25;
+    
+    function InnerPerson(name) {
+      this.name = name;
+    }
+    
+    InnerPerson.prototype.getAge = function() {
+      return age;
+    };
+    
+    InnerPerson.prototype.growOlder = function () {
+      age++;
+    };
+    
+    return InnerPerson;
+  }());
+
+  var person1 = new Person("Nicholas");
+  var person2 = new Person("Greg");
+
+  console.log(person1.name); // "Nicholas"
+  console.log(person2.getAge()); // 25
+
+  console.log(person2.name); // "Greg" 
+  console.log(person2.getAge()); // 25
+
+  person1.growOlder();
+  console.log(person1.getAge()); // 26
+  console.log(person2.getAge()); // 26
+````
+
+## Mixins
+
+> *Mixins* occur when one object acquires the properties of another without modifying the prototype chain. The first object (a *receiver*) actually receives the properties of the second object (the supplier) by copying those properties directly. Traditionally, you create mixins using a function such as this:
+
+````javascript
+function mixin(receiver, supplier) {
+  for (var property in supplier) {
+    if (supplier.hasOwnProperty(property)) {
+        receiver[property] = supplier[property]
+    }
+  }
+  
+  return receiver;
+}
+
+
+var person = mixin(new EventTarget(), {
+  get name() {
+    return "Nicholas"
+  },
+
+  sayName: function() {
+    console.log(this.name);
+    this.fire({ type: "namesid", name: name});
+  }
+});
+
+console.log(person.name); // "Nicholas"
+
+person.name = "Greg";
+console.log(person.name); // "Greg"
+````
+
+For example, you can add event support to an object through a mixin rather than inheritance. First, suppose you've already defined a custom type for using events:
+
+````javascript
+function EventTarget() {
+  
+}
+
+EventTarget.prototype = {
+  constructor: EventTarget,
+
+  addListener: function(type, listener) {
+    // create an array if it doesn't exist
+    if (!this.hasOwnProperty("_listeners")){
+      this._listeners = [];
+    }
+
+    if (typeof this._listeners[type] == "undefined") {
+      this._listeners[type] = [];
+    }
+
+    this._listeners[type].push(listener);
+  },
+
+  fire: function(event) {
+    
+    if (!event.target) {
+      event.target = this;
+    }
+
+    if (!event.type) { // falsy
+      throw new Error("Event object missing 'type' property");
+    }
+
+    if (this._listeners && this._listeners[event.type] instanceof Array) {
+      var listeners = this._listeners[event.type];
+      for (var i = 0, len = listeners.length; i < len; i++) {
+        listeners[i].call(this, event);
+      }
+    }
+  },
+
+  removeListener: function(type, listener) {
+    if (this._listeners && this._listeners[type] instanceof Array) {
+      var listener = this._listeners[type];
+      for (var i = 0, len = listeners.length; i < len; i++) {
+        if (listeners[i] === listener) {
+          listeners.splice(i, 1);
+          break;
+        }
+      }
+    }
+  }
+};
+
+var target = new EventTarget();
+
+target.addListener("message", function(event) {
+  console.log("Message is " + event.data);
+});
+
+target.fire({
+  type: "message",
+  data: "Hello world"
+});
+````
+
+if you want accessor properties to be copied over as accessor properties, you need a different mixin() function, such as:
+
+````javascript
+function mixin(receiver, supplier) {
+  Object.keys(supplier).forEach(function(property){
+    var descriptor = Object.getOwnPropertyDescriptor(supplier, property);
+    Object.defineProperty(receiver, property, descriptor);
+  });
+  return receiver;
+}
+
+var person = mixin(new EventTarget(), {
+  get name() {
+    return "Nicholas"
+  },
+
+  sayName: function() {
+    console.log(this.name);
+    this.fire({type: "namesaid", name: name});
+  }
+});
+
+console.log(person.name); // "Nicholas"
+person.name = "Greg";
+console.log(person.name); // "Nicholas"
+````
+
+## Scope-Sage Constructors
+
+Many built-in constructors, such as Array and RegExp, also work without new because they are written  to be *scope safe* A scope safe constructor can be called with or without `new`
+
